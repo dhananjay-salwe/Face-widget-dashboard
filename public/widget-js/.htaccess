@@ -1,0 +1,8 @@
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^(.+)$ index.php [L,QSA]
+```
+
+Now test it directly in your browser:
+```
+http://localhost/widget-js/widget.js

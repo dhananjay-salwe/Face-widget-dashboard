@@ -1,0 +1,136 @@
+version: "3.9"
+
+# =============================================================================
+# Face Widget Dashboard — Production Docker Compose
+# =============================================================================
+
+services:
+
+  # ── Application (PHP-FPM + Nginx in one container) ──────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: fwidget_app
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+    ports:
+      - "127.0.0.1:8000:80"
+    volumes:
+      - storage_data:/var/www/html/storage/app
+      - logs_data:/var/www/html/storage/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      # redis:
+        # condition: service_healthy
+    networks:
+      - fwidget_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/up"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ── MySQL Database ────────────────────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: fwidget_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+    networks:
+      - fwidget_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USERNAME}", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Redis (cache + sessions + queues) ─────────────────────────────────────────
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: fwidget_redis
+  #   restart: unless-stopped
+  #   command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 256mb --maxmemory-policy allkeys-lru
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - fwidget_net
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 3
+
+  # ── Queue Worker ──────────────────────────────────────────────────────────────
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: fwidget_queue
+    restart: unless-stopped
+    env_file: .env
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--max-time=3600"]
+    depends_on:
+      db:
+        condition: service_healthy
+      # redis:
+        # condition: service_healthy
+    volumes:
+      - storage_data:/var/www/html/storage/app
+      - logs_data:/var/www/html/storage/logs
+    networks:
+      - fwidget_net
+
+  # ── Scheduler (runs artisan schedule:run every minute) ────────────────────────
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: fwidget_scheduler
+    restart: unless-stopped
+    env_file: .env
+    command: ["/bin/sh", "-c", "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"]
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - storage_data:/var/www/html/storage/app
+      - logs_data:/var/www/html/storage/logs
+    networks:
+      - fwidget_net
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  db_data:
+    driver: local
+  # redis_data:
+    # driver: local
+  storage_data:
+    driver: local
+  logs_data:
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  fwidget_net:
+    driver: bridge

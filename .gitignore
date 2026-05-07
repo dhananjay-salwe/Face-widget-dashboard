@@ -1,0 +1,63 @@
+# Environment files
+.env
+.env.backup
+.env.production
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / Editors
+/.idea
+/.vscode
+/.fleet
+/.zed
+
+# PHP tools
+.phpactor.json
+.phpunit.result.cache
+/.phpunit.cache
+
+# Laravel Nova
+/.nova
+
+# Composer auth
+/auth.json
+
+# Node modules
+/node_modules
+
+# Build / Hot reload
+/public/build
+/public/hot
+
+# Storage
+/public/storage
+/storage/*.key
+/storage/pail
+
+# Cache / Sessions / Views
+/storage/framework/sessions/*
+/storage/framework/cache/*
+/storage/framework/views/*
+
+# Vendor dependencies
+/vendor
+
+# Laravel Homestead
+Homestead.json
+Homestead.yaml
+
+# Temporary / backup folders
+_original/*
+backend-tmp/*
+backend_install/*
+
+# new files
+PROJECT_ANALYSIS.md
+
+
+HashServiceProvider.php
