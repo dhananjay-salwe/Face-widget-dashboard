@@ -296,7 +296,8 @@ class WidgetController extends Controller
                 return response()->json(['error' => 'endpoint is required'], 400);
             }
             
-            $faceApiUrl = rtrim((string) env('FACE_API_URL', 'https://100.23.131.184/faceapi/'), '/');
+            // $faceApiUrl = rtrim((string) env('FACE_API_URL', 'https://100.23.131.184/faceapi/'), '/');
+            $faceApiUrl = rtrim((string) env('FACE_API_URL', 'https://face-recognition-hv19.onrender.com'), '/');
             $fullUrl = $faceApiUrl . '/' . ltrim($endpoint, '/');
             
             Log::info("[FaceWidget] Proxying Face API request", [
@@ -459,7 +460,8 @@ class WidgetController extends Controller
                 'isFloating'  => $widget->mode === 'floating',
                 // Read face API URL from .env (FACE_API_URL) with EC2 instance as fallback
                 // 'faceApiUrl'  => rtrim(env('FACE_API_URL', 'https://ec2-35-87-137-123.us-west-2.compute.amazonaws.com/faceapi'), '/'),
-                'faceApiUrl'  => rtrim(env('FACE_API_URL', 'https://100.23.131.184/faceapi/'), '/'),
+                // 'faceApiUrl'  => rtrim(env('FACE_API_URL', 'https://100.23.131.184/faceapi/'), '/'),
+                'faceApiUrl'  => rtrim(env('FACE_API_URL', 'https://face-recognition-hv19.onrender.com'), '/'),
             ], 200)
             ->header('Content-Type', 'application/javascript; charset=UTF-8')
             ->header('Access-Control-Allow-Origin', '*')
