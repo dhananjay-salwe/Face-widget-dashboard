@@ -24,7 +24,8 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 # RUN npm ci --silent
-RUN npm install
+# RUN npm install
+RUN npm install --legacy-peer-deps
 
 COPY . .
 COPY --from=composer /app/vendor ./vendor
