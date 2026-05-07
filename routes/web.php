@@ -65,7 +65,8 @@ Route::withoutMiddleware([VerifyCsrfToken::class])->group(function () {
         return response('', 204)
             ->header('Access-Control-Allow-Origin', '*')
             ->header('Access-Control-Allow-Methods', 'POST, OPTIONS')
-            ->header('Access-Control-Allow-Headers', '*');
+            // ->header('Access-Control-Allow-Headers', '*');
+            ->header('Access-Control-Allow-Headers', 'Content-Type, X-Requested-With, X-Widget-Token, Authorization');
     });
 
     Route::post('/api/face-proxy', [WidgetController::class, 'faceApiProxy'])->name('api.face-proxy');

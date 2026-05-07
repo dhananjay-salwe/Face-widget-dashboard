@@ -358,6 +358,8 @@
         // ====================================================================
         var API_BASE = @json($faceApiUrl); // injected from WidgetController via FACE_API_URL in .env
         
+        var PROXY_URL = BASE_URL + '/api/face-proxy'; // Proxy endpoint avoids browser CORS preflight failures.
+        
         /* OLD CODE: Using backend proxy to bypass SSL:
         // var PROXY_URL = BASE_URL + '/api/face-proxy'; // Proxy endpoint to bypass SSL issues
         // ISSUE: Proxy was adding too much latency, causing timeouts during liveness detection
@@ -419,7 +421,7 @@
                 //     signal: abortController.signal
                 // });
                 
-                // NEW CODE: Direct API call to Flask Face API (FASTER - no proxy overhead)
+                // OLD CODE: Direct API call to Flask Face API (causes browser CORS preflight failure on the new Render API)
                 // ADJUSTED: 20-second timeout for init_register (Flask API: ~100ms for session init)
                 // UPDATED: Use WIDGET_AUTH_TYPE to determine endpoint (register or login)
                 var abortController = new AbortController();
@@ -427,13 +429,30 @@
                     abortController.abort(); 
                 }, 20000); // 20 seconds timeout - init_register is fast
                 
-                // Determine endpoint based on widget auth type
-                var endpoint = WIDGET_AUTH_TYPE === 'login' ? '/api/init_login' : '/api/init_register';
+                // OLD CODE: Endpoint without Face API mount prefix returned 404 on the new Render API:
+                // var endpoint = WIDGET_AUTH_TYPE === 'login' ? '/api/init_login' : '/api/init_register';
+
+                // Determine endpoint based on widget auth type.
+                // New Face API routes are mounted under /faceapi.
+                var endpoint = WIDGET_AUTH_TYPE === 'login' ? '/faceapi/api/init_login' : '/faceapi/api/init_register';
                 
-                var r = await fetch(API_BASE + endpoint, {
+                // var r = await fetch(API_BASE + endpoint, {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({ client_id: clientId }),
+                //     signal: abortController.signal
+                // });
+
+                // NEW CODE: Route through Laravel so the browser only talks to this widget domain.
+                // The backend then calls the Face API server-side, so the Face API does not need browser CORS.
+                var r = await fetch(PROXY_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ client_id: clientId }),
+                    body: JSON.stringify({
+                        endpoint: endpoint,
+                        method: 'POST',
+                        payload: { client_id: clientId }
+                    }),
                     signal: abortController.signal
                 });
                 
@@ -497,7 +516,7 @@
                 //     signal: abortController.signal
                 // });
                 
-                // NEW CODE: Direct API call to Flask Face API (FASTER - no proxy overhead)
+                // OLD CODE: Direct API call to Flask Face API (causes browser CORS preflight failure on the new Render API)
                 // ADJUSTED: AbortController with 120-second timeout for face capture and processing
                 // Based on Flask Face API timing analysis:
                 // - Liveness detection: 6-8 seconds (PRIMARY BOTTLENECK from check_liveness_production)
@@ -513,13 +532,30 @@
                     abortController.abort(); 
                 }, 120000); // 120 seconds timeout - matches Face API liveness + processing time
                 
-                var r = await fetch(API_BASE + '/api/process_frame', {
+                // var r = await fetch(API_BASE + '/api/process_frame', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({ 
+                //         frame: base64, 
+                //         client_id: clientId
+                //         // Device detection can be added if needed: device: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop'
+                //     }),
+                //     signal: abortController.signal
+                // });
+
+                // NEW CODE: Use the Laravel proxy to avoid browser CORS checks against the Face API.
+                var r = await fetch(PROXY_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        frame: base64, 
-                        client_id: clientId
-                        // Device detection can be added if needed: device: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop'
+                    body: JSON.stringify({
+                        // OLD CODE: endpoint: '/api/process_frame',
+                        endpoint: '/faceapi/api/process_frame',
+                        method: 'POST',
+                        payload: { 
+                            frame: base64, 
+                            client_id: clientId
+                            // Device detection can be added if needed: device: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop'
+                        }
                     }),
                     signal: abortController.signal
                 });

@@ -293,7 +293,12 @@ class WidgetController extends Controller
             $payload  = $request->input('payload') ?? [];
             
             if (!$endpoint) {
-                return response()->json(['error' => 'endpoint is required'], 400);
+                return $this->faceProxyResponse(['error' => 'endpoint is required'], 400);
+            }
+
+            $method = strtoupper($method ?: 'POST');
+            if (!in_array($method, ['POST'], true)) {
+                return $this->faceProxyResponse(['error' => 'Unsupported proxy method'], 405);
             }
             
             // $faceApiUrl = rtrim((string) env('FACE_API_URL', 'https://100.23.131.184/faceapi/'), '/');
@@ -318,6 +323,8 @@ class WidgetController extends Controller
             $client = new \GuzzleHttp\Client([
                 'verify' => false, // Disable SSL verification (development only!)
                 'timeout' => 120, // ADJUSTED: increased to 120 seconds (2 minutes) to match browser and Face API processing time
+                'connect_timeout' => 15,
+                'http_errors' => false, // Return Face API 4xx/5xx responses instead of converting them to proxy 500 errors.
             ]);
             
             $options = [
@@ -328,21 +335,31 @@ class WidgetController extends Controller
             ];
             
             $response = $client->request($method, $fullUrl, $options);
+            $body = (string) $response->getBody();
+            $decoded = json_decode($body, true);
             
-            return response()->json(
-                json_decode((string) $response->getBody(), true),
+            return $this->faceProxyResponse(
+                json_last_error() === JSON_ERROR_NONE ? $decoded : ['raw' => $body],
                 $response->getStatusCode()
-            )->header('Access-Control-Allow-Origin', '*');
+            );
             
         } catch (\Throwable $e) {
             Log::error("[FaceWidget] Face API proxy error: {$e->getMessage()}", [
                 'trace' => $e->getTraceAsString(),
             ]);
-            return response()->json([
+            return $this->faceProxyResponse([
                 'error' => 'Face API proxy error',
                 'message' => $e->getMessage(),
-            ], 500)->header('Access-Control-Allow-Origin', '*');
+            ], 500);
         }
+    }
+
+    private function faceProxyResponse($payload, int $status): \Illuminate\Http\JsonResponse
+    {
+        return response()->json($payload, $status)
+            ->header('Access-Control-Allow-Origin', '*')
+            ->header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            ->header('Access-Control-Allow-Headers', 'Content-Type, X-Requested-With, X-Widget-Token, Authorization');
     }
 
     // =========================================================================
