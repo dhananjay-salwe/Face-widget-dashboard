@@ -61,3 +61,4 @@ PROJECT_ANALYSIS.md
 
 
 HashServiceProvider.php
+/bootstrap/cache/*.php
