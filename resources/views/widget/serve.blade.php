@@ -443,16 +443,24 @@
                 //     signal: abortController.signal
                 // });
 
-                // NEW CODE: Route through Laravel so the browser only talks to this widget domain.
-                // The backend then calls the Face API server-side, so the Face API does not need browser CORS.
-                var r = await fetch(PROXY_URL, {
+                // OLD CODE: Route through Laravel proxy. This fixed CORS but added an extra server hop.
+                // var r = await fetch(PROXY_URL, {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({
+                //         endpoint: endpoint,
+                //         method: 'POST',
+                //         payload: { client_id: clientId }
+                //     }),
+                //     signal: abortController.signal
+                // });
+
+                // NEW CODE: Direct call to the corrected /faceapi route.
+                // Your Flask app has CORS enabled for these mounted endpoints, so this avoids proxy latency.
+                var r = await fetch(API_BASE + endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        endpoint: endpoint,
-                        method: 'POST',
-                        payload: { client_id: clientId }
-                    }),
+                    body: JSON.stringify({ client_id: clientId }),
                     signal: abortController.signal
                 });
                 
@@ -543,19 +551,36 @@
                 //     signal: abortController.signal
                 // });
 
-                // NEW CODE: Use the Laravel proxy to avoid browser CORS checks against the Face API.
-                var r = await fetch(PROXY_URL, {
+                // OLD CODE: Use the Laravel proxy to avoid browser CORS checks against the Face API.
+                // This doubles the upload path for every base64 camera frame and is too slow for liveness.
+                // var r = await fetch(PROXY_URL, {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({
+                //         // OLD CODE: endpoint: '/api/process_frame',
+                //         endpoint: '/faceapi/api/process_frame',
+                //         method: 'POST',
+                //         payload: { 
+                //             frame: base64, 
+                //             client_id: clientId
+                //             // Device detection can be added if needed: device: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop'
+                //         }
+                //     }),
+                //     signal: abortController.signal
+                // });
+
+                // OLD CODE: endpoint without Face API mount prefix returned 404 on the new Render API.
+                // var processEndpoint = '/api/process_frame';
+
+                // NEW CODE: Direct call to the mounted Flask endpoint.
+                var processEndpoint = '/faceapi/api/process_frame';
+                var r = await fetch(API_BASE + processEndpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        // OLD CODE: endpoint: '/api/process_frame',
-                        endpoint: '/faceapi/api/process_frame',
-                        method: 'POST',
-                        payload: { 
-                            frame: base64, 
-                            client_id: clientId
-                            // Device detection can be added if needed: device: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop'
-                        }
+                    body: JSON.stringify({ 
+                        frame: base64, 
+                        client_id: clientId
+                        // Device detection can be added if needed: device: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop'
                     }),
                     signal: abortController.signal
                 });
@@ -676,7 +701,9 @@
             });
         })();
 
-        var FRAME_INTERVAL = 800;
+        // OLD CODE: 800ms made liveness slow because the Flask API needs multiple recent frames.
+        // var FRAME_INTERVAL = 800;
+        var FRAME_INTERVAL = 350;
         var isScanning     = false;
         var scanInterval   = null;
         var isProcessing   = false;
@@ -735,7 +762,7 @@
                     stopCapture();
                     if (!result.final) {
                         stopCamera(videoEl);
-                        setErrorState(result.status || 'Scan stopped');
+                        setErrorState(result.status || result.message || 'Scan stopped');
                     }
                 }
                 if (result.final === true && result.face_id) {
@@ -744,7 +771,7 @@
                     handleRecognition(result.face_id);
                 } else if (result.final === true && !result.face_id) {
                     // ── FAILURE PATH: final but no face_id → do NOT count ──
-                    handleFailed(result.status || 'Recognition failed');
+                    handleFailed(result.status || result.message || 'Recognition failed');
                 }
             } catch (e) {
                 console.error('[FaceWidget] scanFrame error:', e);
@@ -755,20 +782,24 @@
         }
 
         function applyState(result) {
-            if (!result || !result.status) return;
-            if (result.status !== lastStatus) {
-                updateStatus(result.status);
-                lastStatus = result.status;
+            if (!result) return;
+            // OLD CODE: The previous API returned `status`; the new Flask API returns `message`.
+            // if (!result || !result.status) return;
+            var stateMessage = result.status || result.message || '';
+            if (!stateMessage) return;
+            if (stateMessage !== lastStatus) {
+                updateStatus(stateMessage);
+                lastStatus = stateMessage;
             }
-            var msg = result.status.toLowerCase();
+            var msg = stateMessage.toLowerCase();
             if (msg.includes('spoof') || msg.includes('failed') ||
                 msg.includes('error') || msg.includes('locked')) {
-                setErrorState(result.status);
+                setErrorState(stateMessage);
                 return;
             }
             if (msg.includes('capturing')) {
                 setScanningState();
-                var m = result.status.match(/(\d+)\/(\d+)/);
+                var m = stateMessage.match(/(\d+)\/(\d+)/);
                 if (m) updateProgress(Math.min((parseInt(m[1]) / parseInt(m[2])) * 100, 95));
                 return;
             }
