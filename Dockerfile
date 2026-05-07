@@ -66,15 +66,15 @@ RUN apk add --no-cache \
         bcmath
 
 # ── PHP configuration ─────────────────────────────────────────────────────────
-COPY docker/php/php.ini      /usr/local/etc/php/conf.d/custom.ini
-COPY docker/php/opcache.ini  /usr/local/etc/php/conf.d/opcache.ini
+COPY php.ini      /usr/local/etc/php/conf.d/custom.ini
+COPY opcache.ini  /usr/local/etc/php/conf.d/opcache.ini
 
 # ── Nginx configuration ───────────────────────────────────────────────────────
-COPY docker/nginx/nginx.conf    /etc/nginx/nginx.conf
-COPY docker/nginx/default.conf  /etc/nginx/http.d/default.conf
+COPY nginx.conf    /etc/nginx/nginx.conf
+COPY default.conf  /etc/nginx/http.d/default.conf
 
 # ── Supervisor configuration ──────────────────────────────────────────────────
-COPY docker/supervisor/supervisord.conf /etc/supervisord.conf
+COPY supervisord.conf /etc/supervisord.conf
 
 # ── Application source ────────────────────────────────────────────────────────
 WORKDIR /var/www/html
@@ -94,7 +94,7 @@ RUN mkdir -p \
     && chmod -R 775 storage bootstrap/cache
 
 # ── Entrypoint ────────────────────────────────────────────────────────────────
-COPY docker/entrypoint.sh /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 80
