@@ -23,7 +23,8 @@ FROM node:20-alpine AS node
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --silent
+# RUN npm ci --silent
+RUN npm install
 
 COPY . .
 COPY --from=composer /app/vendor ./vendor
