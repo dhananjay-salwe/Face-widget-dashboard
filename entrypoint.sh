@@ -29,7 +29,9 @@ echo "  ✓ Caches built"
 
 # ── Run migrations ────────────────────────────────────────────────────────────
 echo "[3/6] Running migrations..."
-php artisan migrate:fresh --force --no-interaction
+# php artisan migrate:fresh --force --no-interaction
+
+php artisan migrate --force --no-interaction
 echo "  ✓ Migrations done"
 
 # ── Storage link ─────────────────────────────────────────────────────────────

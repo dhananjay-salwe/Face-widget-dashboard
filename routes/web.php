@@ -97,3 +97,13 @@ Route::withoutMiddleware([VerifyCsrfToken::class])->group(function () {
 });
 
 Route::get('/api/widget/{id}', [WidgetController::class, 'iframe'])->name('widget.serve');
+
+
+
+
+
+
+// Keep-alive route for UptimeRobot
+Route::get('/ping', function () {
+    return response('Server is awake', 200)->header('Content-Type', 'text/plain');
+});
