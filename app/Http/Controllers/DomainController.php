@@ -236,6 +236,29 @@ class DomainController extends Controller
         return back()->with('success', "✓ '{$domain->domain}' marked as verified manually.");
     }
 
+
+
+    // Revoke for verification
+    // public function revoke(Domain $domain)
+    // {
+    //     $this->authoriseDomain($domain);
+    //     $domain->update(['verified' => false, 'verified_via' => null]);
+    //     return back()->with('success', "Verification revoked for '{$domain->domain}'.");
+    // }
+    public function revoke(Domain $domain)
+    {
+
+           // $this->authoriseDomain($domain); ❌ comment this
+
+          $domain->update([
+                'verified' => false,
+                'verified_via' => null
+          ]);
+
+          return back()->with('success', "'{$domain->domain}' verification revoked.");
+    }
+
+
     
     // =========================================================================
     // DELETE

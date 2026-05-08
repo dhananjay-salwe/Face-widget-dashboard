@@ -454,6 +454,25 @@
                                 </form>
                             @endif
 
+                            <!-- The revoke button here  -->
+                            @if($domain->verified)
+                                <form method="POST" action="{{ route('domains.revoke', $domain->id) }}" style="display:inline;">
+                                    @csrf
+                                    <button
+                                        type="submit"
+                                        class="btn-sm"
+                                        style="color:var(--danger);border-color:var(--danger-subtle-b);background:var(--danger-subtle);"
+                                        onclick="return confirm('Revoke verification for {{ $domain->domain }}? The widget will stop loading on this domain until re-verified.')"
+                                    >
+                                        ↩ Revoke
+                                    </button>
+                                </form>
+                            @endif
+                            <!-- end revoke -->
+
+
+
+
 
                             <button
                                 type="button"
