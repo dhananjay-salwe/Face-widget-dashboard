@@ -4,19 +4,7 @@
 
     <!-- var BASE_URL     = @json($baseUrl); -->
     <!-- This is the extra verification did by Narendra -->
-    <!-- var BASE_URL     = new URL(document.currentScript.src).origin; // auto-detect base URL from script src -->
-
-        <!-- New changes with the /fwd -->
-    var currentScriptUrl = new URL(document.currentScript.src);
-    var BASE_URL = currentScriptUrl.origin;
-
-    // Automatically detect if we are running in the production '/fwd' sub-folder
-    if (currentScriptUrl.pathname.startsWith('/fwd')) {
-        BASE_URL += '/fwd';
-    }
-
-
-    
+    var BASE_URL     = new URL(document.currentScript.src).origin; // auto-detect base URL from script src
 
     var SCRIPT_ORIGIN = new URL(document.currentScript.src).origin;
 
