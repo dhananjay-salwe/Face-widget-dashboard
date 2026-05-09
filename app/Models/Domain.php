@@ -77,18 +77,48 @@ class Domain extends Model
      * Returns true if the string looks like a valid public hostname.
      * Rejects IP addresses, localhost, and *.local / *.test dev hostnames.
      */
+    // public static function isValidPublicDomain(string $domain): bool
+    // {
+    //     if ($domain === '') return false;
+
+    //     // Reject IP addresses
+    //     if (filter_var($domain, FILTER_VALIDATE_IP)) return false;
+
+    //     // Reject local / dev hostnames
+    //     $local = ['localhost', '127.0.0.1', '::1'];
+    //     if (in_array($domain, $local, true)) return false;
+    //     if (str_ends_with($domain, '.local')) return false;
+    //     if (str_ends_with($domain, '.test'))  return false;
+
+    //     // Must match valid hostname pattern and have at least one dot
+    //     if (!preg_match('/^[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?)+$/', $domain)) {
+    //         return false;
+    //     }
+
+    //     return true;
+    // }
+
     public static function isValidPublicDomain(string $domain): bool
     {
         if ($domain === '') return false;
-
-        // Reject IP addresses
-        if (filter_var($domain, FILTER_VALIDATE_IP)) return false;
 
         // Reject local / dev hostnames
         $local = ['localhost', '127.0.0.1', '::1'];
         if (in_array($domain, $local, true)) return false;
         if (str_ends_with($domain, '.local')) return false;
         if (str_ends_with($domain, '.test'))  return false;
+
+        // If it is an IP address, only allow private LAN IPs
+        if (filter_var($domain, FILTER_VALIDATE_IP)) {
+            if (
+                str_starts_with($domain, '10.') ||
+                str_starts_with($domain, '192.168.') ||
+                preg_match('/^172\.(1[6-9]|2[0-9]|3[0-1])\./', $domain)
+            ) {
+                return true;
+            }
+            return false; // Reject public IP addresses
+        }
 
         // Must match valid hostname pattern and have at least one dot
         if (!preg_match('/^[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?)+$/', $domain)) {
@@ -97,4 +127,6 @@ class Domain extends Model
 
         return true;
     }
+
+
 }

@@ -417,6 +417,17 @@ class WidgetController extends Controller
         if (Str::endsWith($detectedHost, '.local')) return true;
         if (Str::endsWith($detectedHost, '.test')) return true;
 
+        // NEW: Allow private LAN IP ranges for local network testing by Dhananjay
+        if (filter_var($detectedHost, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            if (
+                str_starts_with($detectedHost, '10.') ||
+                str_starts_with($detectedHost, '192.168.') ||
+                preg_match('/^172\.(1[6-9]|2[0-9]|3[0-1])\./', $detectedHost)
+            ) {
+                return true;
+            }
+        }
+
         return false;
     }
 
